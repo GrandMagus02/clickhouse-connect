@@ -64,7 +64,7 @@ def run_setup(try_c: bool = True):
             'lz4'
         ],
         extras_require={
-            'sqlalchemy': ['sqlalchemy>1.3.21,<2.0'],
+            'sqlalchemy': ['sqlalchemy>=2.0'],
             'numpy': ['numpy'],
             'pandas': ['pandas'],
             'arrow': ['pyarrow'],

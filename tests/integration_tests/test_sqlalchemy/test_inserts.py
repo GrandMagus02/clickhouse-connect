@@ -1,7 +1,7 @@
 from pytest import fixture
 
 import sqlalchemy as db
-from sqlalchemy import MetaData
+from sqlalchemy import MetaData, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session
@@ -28,7 +28,8 @@ def test_model_fixture(test_client: Client, test_engine: Engine, test_db: str, t
         metric_2 = db.Column(UInt64)
         description = db.Column(String)
 
-    test_engine.execute('DROP TABLE IF EXISTS insert_model')
+    conn = test_engine.connect()
+    conn.execute(text('DROP TABLE IF EXISTS insert_model'))
     Base.metadata.create_all(test_engine)
     yield Model
 

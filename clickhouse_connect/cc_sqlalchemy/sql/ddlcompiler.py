@@ -1,7 +1,8 @@
+# clickhouse_connect/cc_sqlalchemy/sql/ddlcompiler.py
 from sqlalchemy import Column
 from sqlalchemy.sql.compiler import DDLCompiler
 
-from clickhouse_connect.cc_sqlalchemy.sql import  format_table
+from clickhouse_connect.cc_sqlalchemy.sql import format_table
 from clickhouse_connect.driver.binding import quote_identifier
 
 
@@ -17,8 +18,11 @@ class ChDDLCompiler(DDLCompiler):
         table = create.element
         text = f'CREATE TABLE {format_table(table)} ('
         text += ', '.join([self.get_column_specification(c.element) for c in create.columns])
-        return text + ') ' + table.engine.compile()
+        text += ')'
+        if table.engine:
+            text += f' {table.engine.compile()}'
+        return text
 
     def get_column_specification(self, column: Column, **_):
-        text = f'{quote_identifier(column.name)} {column.type.compile()}'
+        text = f'{quote_identifier(column.name)} {column.type.compile(self.dialect)}'
         return text

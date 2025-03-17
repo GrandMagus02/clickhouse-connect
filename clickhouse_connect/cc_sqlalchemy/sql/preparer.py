@@ -1,11 +1,7 @@
+# clickhouse_connect/cc_sqlalchemy/sql/preparer.py
 from sqlalchemy.sql.compiler import IdentifierPreparer
-
-from clickhouse_connect.driver.binding import quote_identifier
 
 
 class ChIdentifierPreparer(IdentifierPreparer):
-
-    quote_identifier = staticmethod(quote_identifier)
-
-    def _requires_quotes(self, _value):
-        return True
+    # _double_percents = False  # Add this attribute
+    pass

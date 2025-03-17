@@ -1,7 +1,7 @@
 from enum import Enum as PyEnum
 
 import sqlalchemy as db
-from sqlalchemy import MetaData
+from sqlalchemy import MetaData, text
 
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -39,44 +39,49 @@ def test_create_table(test_engine: Engine, test_db: str, test_table_engine: str)
     common.set_setting('invalid_setting_action', 'drop')
     conn = test_engine.connect()
     table_cls = engine_map[test_table_engine]
-    metadata = db.MetaData(bind=test_engine, schema=test_db)
-    conn.execute('DROP TABLE IF EXISTS simple_table_test')
+    metadata = db.MetaData(schema=test_db)
+    metadata.bind = test_engine  # Bind the engine to the metadata
+    conn.execute(text('DROP TABLE IF EXISTS simple_table_test'))
     bool_type = Boolean
     date_tz64_type = DateTime64(3, 'Europe/Moscow')
     if not conn.connection.connection.client.min_version('20'):
         bool_type = Int8
         date_tz64_type = DateTime('Europe/Moscow')
-    table = db.Table('simple_table_test', metadata,
-                     db.Column('key_col', Int8),
-                     db.Column('uint_col', UInt16),
-                     db.Column('dec_col', Decimal(38, 5)),  # Decimal128(5)
-                     db.Column('enum_col', Enum16(ColorEnum)),
-                     db.Column('float_col', Float64),
-                     db.Column('str_col', String),
-                     db.Column('fstr_col', FixedString(17)),
-                     db.Column('bool_col', bool_type),
-                     table_cls(('key_col', 'uint_col'), primary_key='key_col'))
+    table = db.Table(
+        'simple_table_test', metadata,
+        db.Column('key_col', Int8),
+        db.Column('uint_col', UInt16),
+        db.Column('dec_col', Decimal(38, 5)),  # Decimal128(5)
+        db.Column('enum_col', Enum16(ColorEnum)),
+        db.Column('float_col', Float64),
+        db.Column('str_col', String),
+        db.Column('fstr_col', FixedString(17)),
+        db.Column('bool_col', bool_type),
+        table_cls(order_by='key_col')
+    )
     table.create(conn)
-    conn.execute('DROP TABLE IF EXISTS advanced_table_test')
-    table = db.Table('advanced_table_test', metadata,
-                     db.Column('key_col', UInt64),
-                     db.Column('uuid_col', UUID),
-                     db.Column('dt_col', DateTime),
-                     db.Column('ip_col', IPv4),
-                     db.Column('dt64_col', date_tz64_type),
-                     db.Column('lc_col', LowCardinality(FixedString(16))),
-                     db.Column('lc_date_col', LowCardinality(Nullable(String))),
-                     db.Column('null_dt_col', Nullable(DateTime('America/Denver'))),
-                     db.Column('arr_col', Array(UUID)),
-                     db.Column('agg_col', AggregateFunction('uniq', LowCardinality(String))),
-                     table_cls('key_col'))
+    conn.execute(text('DROP TABLE IF EXISTS advanced_table_test'))
+    table = db.Table(
+        'advanced_table_test', metadata,
+        db.Column('key_col', UInt64),
+        db.Column('uuid_col', UUID),
+        db.Column('dt_col', DateTime),
+        db.Column('ip_col', IPv4),
+        db.Column('dt64_col', date_tz64_type),
+        db.Column('lc_col', LowCardinality(FixedString(16))),
+        db.Column('lc_date_col', LowCardinality(Nullable(String))),
+        db.Column('null_dt_col', Nullable(DateTime('America/Denver'))),
+        db.Column('arr_col', Array(UUID)),
+        db.Column('agg_col', AggregateFunction('uniq', LowCardinality(String))),
+        table_cls(order_by='key_col')
+    )
     table.create(conn)
 
 
 def test_declarative(test_engine: Engine, test_db: str, test_table_engine: str):
     common.set_setting('invalid_setting_action', 'drop')
     conn = test_engine.connect()
-    conn.execute('DROP TABLE IF EXISTS users_test')
+    conn.execute(text('DROP TABLE IF EXISTS users_test'))
     table_cls = engine_map[test_table_engine]
     base_cls = declarative_base(metadata=MetaData(schema=test_db))
 
@@ -91,3 +96,29 @@ def test_declarative(test_engine: Engine, test_db: str, test_table_engine: str):
     base_cls.metadata.create_all(test_engine)
     user = User(name='Alice')
     assert user.name == 'Alice'
+
+
+def test_remove_table(test_engine: Engine, test_db: str, test_table_engine: str):
+    common.set_setting('invalid_setting_action', 'drop')
+    conn = test_engine.connect()
+    table_cls = engine_map[test_table_engine]
+    metadata = db.MetaData(schema=test_db)
+    metadata.bind = test_engine  # Bind the engine to the metadata
+
+    # Create the table
+    table = db.Table(
+        'remove_table_test', metadata,
+        db.Column('id', UInt32, primary_key=True),
+        db.Column('name', String),
+        table_cls(order_by='id')
+    )
+    table.create(conn)
+
+    # Verify the table exists
+    assert test_engine.dialect.has_table(conn, 'remove_table_test', schema=test_db)
+
+    # Drop the table
+    conn.execute(text('DROP TABLE IF EXISTS remove_table_test'))
+
+    # Verify the table has been removed
+    assert not test_engine.dialect.has_table(conn, 'remove_table_test', schema=test_db)

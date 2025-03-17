@@ -1,13 +1,14 @@
+from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
 from clickhouse_connect import common
 
-test_query = """
+test_query = '''
    -- 6dcd92a04feb50f14bbcf07c661680ba
    WITH dummy = 2
    SELECT database, name FROM system.tables LIMIT 2
    -- 6dcd92a04feb50f14bbcf07c661680ba
-   """
+   '''
 
 test_query_ver19 = """
    -- 6dcd92a04feb50f14bbcf07c661680ba
@@ -49,11 +50,11 @@ def test_execute(test_engine: Engine):
         sql = test_query
         if not conn.connection.connection.client.min_version('21'):
             sql = test_query_ver19
-        rows = list(row for row in conn.execute(sql))
+        rows = list(row for row in conn.execute(text(sql)))
         assert len(rows) == 2
 
-        rows = list(row for row in conn.execute('DROP TABLE IF EXISTS dummy_table'))
+        rows = list(row for row in conn.execute(text('DROP TABLE IF EXISTS dummy_table')))
         assert len(rows) > 0  # This is just the metadata from the "command" QueryResult
 
-        rows = list(row for row in conn.execute('describe TABLE system.columns'))
+        rows = list(row for row in conn.execute(text('describe TABLE system.columns')))
         assert len(rows) > 5
