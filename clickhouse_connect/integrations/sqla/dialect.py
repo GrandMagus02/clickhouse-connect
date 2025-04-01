@@ -1,31 +1,37 @@
-# clickhouse_connect/cc_sqlalchemy/dialect.py
+# clickhouse_connect/integrations.sqla/dialect.py
 from typing import Any, Type, Optional
 
 from sqlalchemy import util, text
 from sqlalchemy.engine.default import DefaultDialect
-from sqlalchemy.engine.interfaces import DBAPIConnection, PoolProxiedConnection, DBAPICursor, \
-    _DBAPISingleExecuteParams, ExecutionContext
+from sqlalchemy.engine.interfaces import (
+    DBAPIConnection,
+    PoolProxiedConnection,
+    DBAPICursor,
+    _DBAPISingleExecuteParams,
+    ExecutionContext,
+)
 from sqlalchemy.engine.url import URL
 from sqlalchemy.pool import Pool, NullPool
 from sqlalchemy.sql import compiler
 
 from clickhouse_connect import dbapi
-from clickhouse_connect.cc_sqlalchemy import ischema_names, dialect_name
-from clickhouse_connect.cc_sqlalchemy.execution import ChExecutionContext
-from clickhouse_connect.cc_sqlalchemy.inspector import ChInspector
-from clickhouse_connect.cc_sqlalchemy.sql import full_table
-from clickhouse_connect.cc_sqlalchemy.sql.compiler import ChCompiler
-from clickhouse_connect.cc_sqlalchemy.sql.ddlcompiler import ChDDLCompiler
-from clickhouse_connect.cc_sqlalchemy.sql.preparer import ChIdentifierPreparer
-from clickhouse_connect.cc_sqlalchemy.sql.type import ChTypeCompiler
+from clickhouse_connect.integrations.sqla import ischema_names, dialect_name
+from clickhouse_connect.integrations.sqla.execution import ChExecutionContext
+from clickhouse_connect.integrations.sqla.inspector import ChInspector
+from clickhouse_connect.integrations.sqla.sql import full_table
+from clickhouse_connect.integrations.sqla.sql.compiler import ChCompiler
+from clickhouse_connect.integrations.sqla.sql.ddlcompiler import ChDDLCompiler
+from clickhouse_connect.integrations.sqla.sql.preparer import ChIdentifierPreparer
+from clickhouse_connect.integrations.sqla.sql.type import ChTypeCompiler
+from clickhouse_connect.dbapi import async_dbapi
 from clickhouse_connect.driver.binding import quote_identifier, format_str
 
 
 class ClickHouseDialect(DefaultDialect):
     name = dialect_name
-    driver = 'connect'
+    driver = "connect"
 
-    default_schema_name = 'default'
+    default_schema_name = "default"
     supports_native_decimal = True
     supports_native_boolean = True
     supports_statement_cache = False
@@ -38,7 +44,7 @@ class ClickHouseDialect(DefaultDialect):
     compiler_linting = compiler.NO_LINTING
     _supports_statement_cache = False
     positional = False
-    paramstyle = 'named'
+    paramstyle = "named"
     label_length = None
     supports_server_side_cursors = False
     requires_name_normalize = False
@@ -50,10 +56,6 @@ class ClickHouseDialect(DefaultDialect):
     identifier_preparer = ChIdentifierPreparer
     execution_ctx_cls = ChExecutionContext
     inspector = ChInspector
-
-    # def __init__(self, dbapi_=None, **kwargs):
-    #     super().__init__(dbapi_, **kwargs)
-    #     self.dbapi = dbapi_ or dbapi
 
     @classmethod
     def dbapi(cls):
@@ -93,17 +95,23 @@ class ClickHouseDialect(DefaultDialect):
 
     @staticmethod
     def get_schema_names(connection, **_):
-        return [row.name for row in connection.execute('SHOW DATABASES')]
+        return [row.name for row in connection.execute("SHOW DATABASES")]
 
     @staticmethod
     def has_database(connection, db_name):
-        return (connection.execute(text('SELECT name FROM system.databases ' +
-                                   f'WHERE name = {format_str(db_name)}'))).rowcount > 0
+        return (
+            connection.execute(
+                text(
+                    "SELECT name FROM system.databases "
+                    + f"WHERE name = {format_str(db_name)}"
+                )
+            )
+        ).rowcount > 0
 
     def get_table_names(self, connection, schema=None, **kw):
-        cmd = 'SHOW TABLES'
+        cmd = "SHOW TABLES"
         if schema:
-            cmd += ' FROM ' + quote_identifier(schema)
+            cmd += " FROM " + quote_identifier(schema)
         return [row.name for row in connection.execute(cmd)]
 
     def get_primary_keys(self, connection, table_name, schema=None, **kw):
@@ -137,7 +145,9 @@ class ClickHouseDialect(DefaultDialect):
         return []
 
     def has_table(self, connection, table_name, schema=None, **_kw):
-        result = connection.execute(text(f'EXISTS TABLE {full_table(table_name, schema)}'))
+        result = connection.execute(
+            text(f"EXISTS TABLE {full_table(table_name, schema)}")
+        )
         row = result.fetchone()
         return row[0] == 1
 
@@ -166,12 +176,24 @@ class ClickHouseDialect(DefaultDialect):
         return None
 
     def do_execute(
-            self,
-            cursor: DBAPICursor,
-            statement: str,
-            parameters: Optional[_DBAPISingleExecuteParams],
-            context: Optional[ExecutionContext] = None,
+        self,
+        cursor: DBAPICursor,
+        statement: str,
+        parameters: Optional[_DBAPISingleExecuteParams],
+        context: Optional[ExecutionContext] = None,
     ) -> None:
         """Provide an implementation of ``cursor.execute(statement,
         parameters)``."""
         cursor.execute(statement, parameters)
+
+
+class AsyncClickHouseDialect(ClickHouseDialect):
+    driver = "async"
+    is_async = True
+
+    def connect(self, *cargs: Any, **cparams: Any) -> DBAPIConnection:
+        return super().connect(*cargs, **cparams)
+
+    @classmethod
+    def dbapi(cls):
+        return async_dbapi

@@ -1,8 +1,8 @@
-# clickhouse_connect/cc_sqlalchemy/sql/ddlcompiler.py
-from sqlalchemy import Column
+# clickhouse_connect/integrations.sqla/sql/ddlcompiler.py
+from sqlalchemy import Column, Update
 from sqlalchemy.sql.compiler import DDLCompiler
 
-from clickhouse_connect.cc_sqlalchemy.sql import format_table
+from clickhouse_connect.integrations.sqla.sql import format_table
 from clickhouse_connect.driver.binding import quote_identifier
 
 

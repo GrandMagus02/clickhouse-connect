@@ -1,4 +1,4 @@
-# clickhouse_connect/cc_sqlalchemy/execution.py
+# clickhouse_connect/integrations.sqla/execution.py
 from sqlalchemy.engine.default import DefaultExecutionContext
 
 

@@ -1,4 +1,4 @@
-# clickhouse_connect/cc_sqlalchemy/sql/preparer.py
+# clickhouse_connect/integrations.sqla/sql/preparer.py
 from sqlalchemy.sql.compiler import IdentifierPreparer
 
 

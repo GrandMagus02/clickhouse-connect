@@ -60,6 +60,8 @@ class TableEngine(SchemaEventTarget, Visitable):
         for param_name in self.eng_params:
             v = kwargs.pop(param_name, None)
             if v is not None:
+                if isinstance(v, list):
+                    v = ', '.join(v)
                 params.append(tuple_expr(param_name.upper().replace('_', ' '), v))
 
         self.full_engine = 'Engine ' + self.name
@@ -140,7 +142,7 @@ class MergeTree(TableEngine):
     eng_params = ['order_by', 'partition_key', 'primary_key', 'sample_by']
 
     # pylint: disable=unused-argument
-    def __init__(self, order_by: str = None, primary_key: str = None,
+    def __init__(self, order_by: str | list[str] = None, primary_key: str = None,
                  partition_by: str = None, sample_by: str = None):
         if not order_by and not primary_key:
             raise ArgumentError(None, 'Either PRIMARY KEY or ORDER BY must be specified')
@@ -165,7 +167,7 @@ class ReplacingMergeTree(TableEngine):
     eng_params = MergeTree.eng_params
 
     # pylint: disable=unused-argument
-    def __init__(self, ver: str = None, order_by: str = None, primary_key: str = None,
+    def __init__(self, ver: str = None, order_by: str | list[str] = None, primary_key: str = None,
                  partition_by: str = None, sample_by: str = None):
         if not order_by and not primary_key:
             raise ArgumentError(None, 'Either PRIMARY KEY or ORDER BY must be specified')
@@ -177,7 +179,7 @@ class CollapsingMergeTree(TableEngine):
     eng_params = MergeTree.eng_params
 
     # pylint: disable=unused-argument
-    def __init__(self, sign: str = None, order_by: str = None, primary_key: str = None,
+    def __init__(self, sign: str = None, order_by: str | list[str] = None, primary_key: str = None,
                  partition_by: str = None, sample_by: str = None):
         if not order_by and not primary_key:
             raise ArgumentError(None, 'Either PRIMARY KEY or ORDER BY must be specified')
@@ -215,7 +217,7 @@ class ReplicatedMergeTree(TableEngine):
     eng_params = MergeTree.eng_params
 
     # pylint: disable=unused-argument
-    def __init__(self, order_by: str = None, primary_key: str = None, partition_by: str = None, sample_by: str = None,
+    def __init__(self, order_by: str | list[str] = None, primary_key: str = None, partition_by: str = None, sample_by: str = None,
                  zk_path: str = None, replica: str = None):
         if not order_by and not primary_key:
             raise ArgumentError(None, 'Either PRIMARY KEY or ORDER BY must be specified')

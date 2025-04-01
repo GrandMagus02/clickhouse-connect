@@ -74,9 +74,9 @@ def run_setup(try_c: bool = True):
         tests_require=['pytest'],
         entry_points={
             'sqlalchemy.dialects': [
-                'clickhousedb.connect=clickhouse_connect.cc_sqlalchemy.dialect:ClickHouseDialect',
-                'clickhousedb=clickhouse_connect.cc_sqlalchemy.dialect:ClickHouseDialect',
-                'clickhousedb.async=clickhouse_connect.cc_sqlalchemy.async_dialect:AsyncClickHouseDialect',
+                'clickhousedb.connect=clickhouse_connect.integrations.sqla.dialect:ClickHouseDialect',
+                'clickhousedb=clickhouse_connect.integrations.sqla.dialect:ClickHouseDialect',
+                'clickhousedb.async=clickhouse_connect.integrations.sqla.dialect:AsyncClickHouseDialect',
             ]
         },
         classifiers=[

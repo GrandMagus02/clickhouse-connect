@@ -6,25 +6,29 @@ from clickhouse_connect.driver.query import QueryResult
 
 
 class AsyncConnection:
-    def __init__(self,
-                 dsn: str = None,
-                 username: str = '',
-                 password: str = '',
-                 host: str = None,
-                 database: str = None,
-                 interface: str = None,
-                 port: int = 0,
-                 secure: Union[bool, str] = False,
-                 **kwargs):
-        self.client = create_client(host=host,
-                                    username=username,
-                                    password=password,
-                                    database=database,
-                                    interface=interface,
-                                    port=port,
-                                    secure=secure,
-                                    dsn=dsn,
-                                    generic_args=kwargs)
+    def __init__(
+        self,
+        dsn: str = None,
+        username: str = "",
+        password: str = "",
+        host: str = None,
+        database: str = None,
+        interface: str = None,
+        port: int = 0,
+        secure: Union[bool, str] = False,
+        **kwargs,
+    ):
+        self.client = create_client(
+            host=host,
+            username=username,
+            password=password,
+            database=database,
+            interface=interface,
+            port=port,
+            secure=secure,
+            dsn=dsn,
+            generic_args=kwargs,
+        )
         self.async_client = AsyncClient(client=self.client)
         self.timezone = self.client.server_tz
 
