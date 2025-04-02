@@ -74,21 +74,21 @@ class UInt256(ChSqlaType, Integer):
 
 
 class Float32(ChSqlaType, Float):
-    def __init__(self, type_def: TypeDef = EMPTY_TYPE_DEF):
+    def __init__(self, type_def: TypeDef = EMPTY_TYPE_DEF, **kwargs):
         ChSqlaType.__init__(self, type_def)
-        Float.__init__(self)
+        Float.__init__(self, **kwargs)
 
 
 class Float64(ChSqlaType, Float):
-    def __init__(self, type_def: TypeDef = EMPTY_TYPE_DEF):
+    def __init__(self, type_def: TypeDef = EMPTY_TYPE_DEF, **kwargs):
         ChSqlaType.__init__(self, type_def)
-        Float.__init__(self)
+        Float.__init__(self, **kwargs)
 
 
 class Bool(ChSqlaType, SqlaBoolean):
-    def __init__(self, type_def: TypeDef = EMPTY_TYPE_DEF):
+    def __init__(self, type_def: TypeDef = EMPTY_TYPE_DEF, **kwargs):
         ChSqlaType.__init__(self, type_def)
-        SqlaBoolean.__init__(self)
+        SqlaBoolean.__init__(self, **kwargs)
 
 
 class Boolean(Bool):
@@ -98,7 +98,7 @@ class Boolean(Bool):
 class Decimal(ChSqlaType, Numeric):
     dec_size = 0
 
-    def __init__(self, precision: int = 0, scale: int = 0, type_def: TypeDef = None):
+    def __init__(self, precision: int = 0, scale: int = 0, type_def: TypeDef = None, **kwargs):
         """
         Construct either with precision and scale (for DDL), or a TypeDef with those values (by name)
         :param precision:  Number of digits the Decimal
@@ -118,7 +118,7 @@ class Decimal(ChSqlaType, Numeric):
         else:
             type_def = TypeDef(values=(precision, scale))
         ChSqlaType.__init__(self, type_def)
-        Numeric.__init__(self, precision, scale)
+        Numeric.__init__(self, precision, scale, **kwargs)
 
 
 # pylint: disable=duplicate-code
@@ -199,11 +199,11 @@ class String(ChSqlaType, UserDefinedType):
 
 
 class FixedString(ChSqlaType, SqlaString):
-    def __init__(self, size: int = -1, type_def: TypeDef = None):
+    def __init__(self, size: int = -1, type_def: TypeDef = None, **kwargs):
         if not type_def:
             type_def = TypeDef(values=(size,))
         ChSqlaType.__init__(self, type_def)
-        SqlaString.__init__(self, size)
+        SqlaString.__init__(self, size, **kwargs)
 
 
 class IPv4(ChSqlaType, UserDefinedType):
@@ -255,7 +255,7 @@ class Date32(ChSqlaType, SqlaDate):
 
 
 class DateTime(ChSqlaType, SqlaDateTime):
-    def __init__(self, tz: str = None, type_def: TypeDef = None):
+    def __init__(self, tz: str = None, type_def: TypeDef = None, **kwargs):
         """
         Date time constructor with optional ClickHouse timezone parameter if not constructed with TypeDef
         :param tz: Timezone string as defined in pytz
@@ -268,11 +268,11 @@ class DateTime(ChSqlaType, SqlaDateTime):
             else:
                 type_def = EMPTY_TYPE_DEF
         ChSqlaType.__init__(self, type_def)
-        SqlaDateTime.__init__(self)
+        SqlaDateTime.__init__(self, **kwargs)
 
 
 class DateTime64(ChSqlaType, SqlaDateTime):
-    def __init__(self, precision: int = None, tz: str = None, type_def: TypeDef = None):
+    def __init__(self, precision: int = None, tz: str = None, type_def: TypeDef = None, **kwargs):
         """
         Date time constructor with precision and timezone parameters if not constructed with TypeDef
         :param precision:   Usually 3/6/9 for mill/micro/nanosecond precision on ClickHouse side
@@ -291,7 +291,7 @@ class DateTime64(ChSqlaType, SqlaDateTime):
                 f"Invalid precision value {prec} for ClickHouse DateTime64"
             )
         ChSqlaType.__init__(self, type_def)
-        SqlaDateTime.__init__(self)
+        SqlaDateTime.__init__(self, **kwargs)
 
 
 class Nullable:
