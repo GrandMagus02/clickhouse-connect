@@ -11,6 +11,7 @@ from sqlalchemy.types import (
     String as SqlaString,
     DateTime as SqlaDateTime,
     Date as SqlaDate,
+    Enum as SqlaEnum,
 )
 from sqlalchemy.exc import ArgumentError
 
@@ -98,7 +99,9 @@ class Boolean(Bool):
 class Decimal(ChSqlaType, Numeric):
     dec_size = 0
 
-    def __init__(self, precision: int = 0, scale: int = 0, type_def: TypeDef = None, **kwargs):
+    def __init__(
+        self, precision: int = 0, scale: int = 0, type_def: TypeDef = None, **kwargs
+    ):
         """
         Construct either with precision and scale (for DDL), or a TypeDef with those values (by name)
         :param precision:  Number of digits the Decimal
@@ -138,29 +141,22 @@ class Decimal256(Decimal):
     dec_size = 256
 
 
-class Enum(ChSqlaType, UserDefinedType):
+class Enum(ChSqlaType, SqlaEnum):
     _size = 16
     python_type = str
 
     def __init__(
         self,
-        enum: Type[PyEnum] = None,
+        *enums,
         keys: Sequence[str] = None,
         values: Sequence[int] = None,
         type_def: TypeDef = None,
+        **kwargs,
     ):
-        """
-        Construct a ClickHouse enum either from a Python Enum or parallel lists of keys and value.  Note that
-        Python enums do not support empty strings as keys, so the alternate keys/values must be used in that case
-        :param enum: Python enum to convert
-        :param keys: List of string keys
-        :param values: List of integer values
-        :param type_def: TypeDef from parse_name function
-        """
         if not type_def:
-            if enum:
-                keys = [e.name for e in enum]
-                values = [e.value for e in enum]
+            if enums:
+                keys = [e.name for enum in enums for e in enum]
+                values = [e.value for enum in enums for e in enum]
             self._validate(keys, values)
             if self.__class__.__name__ == "Enum":
                 if max(values) <= 127 and min(values) >= -128:
@@ -168,7 +164,8 @@ class Enum(ChSqlaType, UserDefinedType):
                 else:
                     self._ch_type_cls = ChEnum16
             type_def = TypeDef(keys=tuple(keys), values=tuple(values))
-        super().__init__(type_def)
+        ChSqlaType.__init__(self, type_def)
+        SqlaEnum.__init__(self, *enums, **kwargs)
 
     @classmethod
     def _validate(cls, keys: Sequence, values: Sequence):
@@ -272,7 +269,9 @@ class DateTime(ChSqlaType, SqlaDateTime):
 
 
 class DateTime64(ChSqlaType, SqlaDateTime):
-    def __init__(self, precision: int = None, tz: str = None, type_def: TypeDef = None, **kwargs):
+    def __init__(
+        self, precision: int = None, tz: str = None, type_def: TypeDef = None, **kwargs
+    ):
         """
         Date time constructor with precision and timezone parameters if not constructed with TypeDef
         :param precision:   Usually 3/6/9 for mill/micro/nanosecond precision on ClickHouse side
