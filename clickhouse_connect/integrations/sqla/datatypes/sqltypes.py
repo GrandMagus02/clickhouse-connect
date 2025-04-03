@@ -153,6 +153,9 @@ class Enum(ChSqlaType, SqlaEnum):
         type_def: TypeDef = None,
         **kwargs,
     ):
+        if not enums:
+            enums = kwargs.pop('_enums')
+            
         if not type_def:
             if enums:
                 keys = [e.name for enum in enums for e in enum]
