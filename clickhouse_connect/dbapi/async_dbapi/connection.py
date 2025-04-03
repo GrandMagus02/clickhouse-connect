@@ -3,9 +3,12 @@ from typing import Union
 from clickhouse_connect.dbapi.async_dbapi.cursor import AsyncCursor
 from clickhouse_connect.driver import create_client, AsyncClient
 from clickhouse_connect.driver.query import QueryResult
+from sqlalchemy.util.concurrency import await_only
 
 
 class AsyncConnection:
+    await_ = staticmethod(await_only)
+
     def __init__(
         self,
         dsn: str = None,
@@ -32,20 +35,20 @@ class AsyncConnection:
         self.async_client = AsyncClient(client=self.client)
         self.timezone = self.client.server_tz
 
-    async def close(self):
-        await self.client.close()
+    def close(self):
+        self.await_(self.client.close())
 
-    async def commit(self):
+    def commit(self):
         pass
 
-    async def rollback(self):
+    def rollback(self):
         pass
 
-    async def command(self, cmd: str):
-        return await self.async_client.command(cmd)
+    def command(self, cmd: str):
+        return self.await_(self.async_client.command(cmd))
 
-    async def raw_query(self, query: str) -> QueryResult:
-        return await self.async_client.query(query)
+    def raw_query(self, query: str) -> QueryResult:
+        return self.await_(self.async_client.query(query))
 
     def cursor(self):
-        return AsyncCursor(self.client)
+        return AsyncCursor(self)

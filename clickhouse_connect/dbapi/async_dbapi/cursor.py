@@ -1,12 +1,15 @@
 import logging
 import re
-from typing import Optional, Sequence, List, Dict
+from typing import TYPE_CHECKING, Optional, Sequence, List, Dict
 from clickhouse_connect.datatypes.registry import get_from_name
 from clickhouse_connect.driver.common import unescape_identifier
 from clickhouse_connect.driver.exceptions import ProgrammingError
 from clickhouse_connect.driver import Client, AsyncClient
 from clickhouse_connect.driver.parser import parse_callable
 from clickhouse_connect.driver.query import remove_sql_comments
+
+if TYPE_CHECKING:
+    from clickhouse_connect.dbapi.async_dbapi.connection import AsyncConnection
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +19,9 @@ int_type = get_from_name("Int32")
 
 
 class AsyncCursor:
-    def __init__(self, client: Client):
-        self.async_client = client
-        self.async_client = AsyncClient(client=client)
+    def __init__(self, adapt_connection: "AsyncConnection"):
+        self._adapt_connection = adapt_connection
+        self.async_client = adapt_connection.async_client
         self.arraysize = 1
         self.data: Optional[Sequence] = None
         self.names = []
@@ -48,8 +51,8 @@ class AsyncCursor:
     async def close(self):
         self.data = None
 
-    async def execute(self, operation: str, parameters=None):
-        query_result = await self.async_client.query(operation, parameters)
+    def execute(self, operation: str, parameters=None):
+        query_result = self._adapt_connection.await_(self.async_client.query(operation, parameters))
         self.data = query_result.result_set
         self._rowcount = len(self.data)
         self._summary.append(query_result.summary)
@@ -60,7 +63,7 @@ class AsyncCursor:
             self.names = [f"col_{x}" for x in range(len(self.data[0]))]
             self.types = [x.__class__ for x in self.data[0]]
 
-    async def _try_bulk_insert(self, operation: str, data):
+    def _try_bulk_insert(self, operation: str, data):
         match = insert_re.match(remove_sql_comments(operation))
         if not match:
             return False
@@ -80,17 +83,17 @@ class AsyncCursor:
         ):
             return False
         data_values = [list(row.values()) for row in data]
-        await self.async_client.insert(table, data_values, col_names)
+        self._adapt_connection.await_(self.async_client.insert(table, data_values, col_names))
         self.data = []
         return True
 
-    async def executemany(self, operation, parameters):
-        if not parameters or await self._try_bulk_insert(operation, parameters):
+    def executemany(self, operation, parameters):
+        if not parameters or self._try_bulk_insert(operation, parameters):
             return
         self.data = []
         try:
             for param_row in parameters:
-                query_result = await self.async_client.query(operation, param_row)
+                query_result = self._adapt_connection.await_(self.async_client.query(operation, param_row))
                 self.data.extend(query_result.result_set)
                 if self.names or self.types:
                     if query_result.column_names != self.names:
@@ -110,13 +113,13 @@ class AsyncCursor:
             ) from ex
         self._rowcount = len(self.data)
 
-    async def fetchall(self):
+    def fetchall(self):
         self.check_valid()
         ret = self.data
         self._ix = self._rowcount
         return ret
 
-    async def fetchone(self):
+    def fetchone(self):
         self.check_valid()
         if self._ix >= self._rowcount:
             return None
@@ -124,15 +127,15 @@ class AsyncCursor:
         self._ix += 1
         return val
 
-    async def fetchmany(self, size: int = -1):
+    def fetchmany(self, size: int = -1):
         self.check_valid()
         end = self._ix + max(size, self._rowcount - self._ix)
         ret = self.data[self._ix : end]
         self._ix = end
         return ret
 
-    async def nextset(self):
+    def nextset(self):
         raise NotImplementedError
 
-    async def callproc(self, *args, **kwargs):
+    def callproc(self, *args, **kwargs):
         raise NotImplementedError
