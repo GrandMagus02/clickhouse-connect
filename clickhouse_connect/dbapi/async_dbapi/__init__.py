@@ -1,6 +1,6 @@
 from typing import Optional
 
-from clickhouse_connect.dbapi.connection import Connection
+from clickhouse_connect.dbapi.async_dbapi.connection import AsyncConnection
 
 
 apilevel = "2.0"  # PEP 249  DB API level
@@ -23,7 +23,7 @@ def connect(
     **kwargs,
 ):
     secure = kwargs.pop("secure", False)
-    return Connection(
+    return AsyncConnection(
         host=host,
         database=database,
         username=username,
