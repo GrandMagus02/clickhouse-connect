@@ -36,7 +36,7 @@ class AsyncConnection:
         self.timezone = self.client.server_tz
 
     def close(self):
-        self.await_(self.client.close())
+        self.await_(self.async_client.close())
 
     def commit(self):
         pass
