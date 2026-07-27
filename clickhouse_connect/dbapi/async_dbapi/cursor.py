@@ -1,3 +1,4 @@
+import collections
 import logging
 import re
 from typing import TYPE_CHECKING, Optional, Sequence, List, Dict
@@ -21,11 +22,15 @@ int_type = get_from_name("Int32")
 class AsyncCursor:
     def __init__(self, adapt_connection: "AsyncConnection"):
         self._adapt_connection = adapt_connection
+        self._connection = adapt_connection._connection
+        self.await_ = adapt_connection.await_
+
         self.async_client = adapt_connection.async_client
+
         self.arraysize = 1
         self.data: Optional[Sequence] = None
-        self.names = []
-        self.types = []
+        self.names = None
+        self.types = None
         self._rowcount = 0
         self._summary: List[Dict[str, str]] = []
         self._ix = 0
@@ -37,7 +42,8 @@ class AsyncCursor:
     @property
     def description(self):
         return [
-            (n, t, None, None, None, None, True) for n, t in zip(self.names, self.types)
+            (n, t, None, None, None, None, True)
+            for n, t in zip(self.names or [], self.types or [])
         ]
 
     @property
@@ -48,11 +54,15 @@ class AsyncCursor:
     def summary(self) -> List[Dict[str, str]]:
         return self._summary
 
-    async def close(self):
+    def close(self):
         self.data = None
+        self.names = None
+        self.types = None
 
     def execute(self, operation: str, parameters=None):
-        query_result = self._adapt_connection.await_(self.async_client.query(operation, parameters))
+        query_result = self._adapt_connection.await_(
+            self.async_client.query(operation, parameters)
+        )
         self.data = query_result.result_set
         self._rowcount = len(self.data)
         self._summary.append(query_result.summary)
@@ -83,7 +93,9 @@ class AsyncCursor:
         ):
             return False
         data_values = [list(row.values()) for row in data]
-        self._adapt_connection.await_(self.async_client.insert(table, data_values, col_names))
+        self._adapt_connection.await_(
+            self.async_client.insert(table, data_values, col_names)
+        )
         self.data = []
         return True
 
@@ -93,7 +105,9 @@ class AsyncCursor:
         self.data = []
         try:
             for param_row in parameters:
-                query_result = self._adapt_connection.await_(self.async_client.query(operation, param_row))
+                query_result = self._adapt_connection.await_(
+                    self.async_client.query(operation, param_row)
+                )
                 self.data.extend(query_result.result_set)
                 if self.names or self.types:
                     if query_result.column_names != self.names:

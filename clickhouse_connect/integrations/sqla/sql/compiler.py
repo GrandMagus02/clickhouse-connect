@@ -12,3 +12,4 @@ class ChCompiler(compiler.SQLCompiler):
         if update_stmt.whereclause is not None:
             text += f' WHERE {self.process(update_stmt.whereclause, include_table=False)}'
         return text
+    
